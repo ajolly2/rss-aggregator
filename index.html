@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Latest Sports News</title>
+    <style>
+        body {
+            font-family: Helvetica, sans-serif;
+            color: black;
+            padding: 20px;
+        }
+        .news-section {
+            margin-bottom: 20px;
+        }
+        h2 {
+            font-size: 16px;
+            margin-bottom: 5px;
+            border-bottom: 2px solid black;
+            padding-bottom: 5px;
+        }
+        ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        li {
+            padding: 5px 0;
+        }
+        li a {
+            color: black;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Latest Sports News</h1>
+    <div id="newsContainer"></div>
+
+    <script>
+        const feeds = [
+            { name: "ESPN", url: "https://www.espn.com/espn/rss/news" },
+            { name: "CBS Sports", url: "https://www.cbssports.com/rss/headlines/" },
+            { name: "Yahoo Sports", url: "https://sports.yahoo.com/general/news/rss/" },
+            { name: "FOX Sports", url: "https://api.foxsports.com/v2/content/optimized-rss?partnerKey=MB0Wehpmuj2lUhuRhQaafhBjAJqaPU244mlTDK1i&aggregateId=7f83e8ca-6701-5ea0-96ee-072636b67336" }
+        ];
+
+        async function fetchRSS(feed) {
+            try {
+                const response = await fetch(feed.url);
+                if (!response.ok) throw new Error(`Network error: ${feed.name}`);
+                
+                const text = await response.text();
+                const parser = new DOMParser();
+                const xml = parser.parseFromString(text, "application/xml");
+                const items = [...xml.querySelectorAll("item")].slice(0, 10);
+
+                return {
+                    name: feed.name,
+                    items: items.map(item => ({
+                        title: item.querySelector("title").textContent.trim(),
+                        link: item.querySelector("link").textContent.trim()
+                    }))
+                };
+            } catch (error) {
+                console.error(`Error loading ${feed.name} feed:`, error);
+                return { name: feed.name, items: [] };
+            }
+        }
+
+        async function loadNews() {
+            const newsContainer = document.getElementById("newsContainer");
+            newsContainer.innerHTML = "<p>Loading...</p>";
+
+            const results = await Promise.all(feeds.map(fetchRSS));
+
+            newsContainer.innerHTML = results.map(feed => `
+                <div class="news-section">
+                    <h2>${feed.name}</h2>
+                    <ul>
+                        ${feed.items.map(item => `<li><a href="${item.link}" target="_blank">${item.title}</a></li>`).join("")}
+                    </ul>
+                </div>
+            `).join("");
+        }
+
+        loadNews();
+    </script>
+
+</body>
+</html>
